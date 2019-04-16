@@ -1,7 +1,16 @@
 Parameters:
-    KeyPair:
-      Description: Use this keypair to SSH into the instances
-      Type: AWS::EC2::KeyPair::KeyName    
+    EnvType: 
+      Description: Environment type.
+      Default: test
+      Type: String
+      AllowedValues: 
+        - prod
+        - test
+      ConstraintDescription: must specify prod or test.
+    
+Conditions: 
+  Prod: !Equals [ !Ref EnvType, prod ]
+  
 Resources:
     MyVpc:
       Type: AWS::EC2::VPC
@@ -28,6 +37,7 @@ Resources:
     Subnet2:
       Type: AWS::EC2::Subnet
       Description: Create Subnet2 for placing EC2 server2
+      Condition: Prod
       Properties:
         VpcId: !Ref MyVpc
         CidrBlock: 10.0.2.0/24
@@ -54,10 +64,16 @@ Resources:
         RouteTableId: !Ref RouteTable
         DestinationCidrBlock: "0.0.0.0/0"
         GatewayId: !Ref InternetGateway
-    SubnetRouteTableAssociation:
+    Subnet1RouteTableAssociation:
       Type: AWS::EC2::SubnetRouteTableAssociation
       Properties:
         SubnetId: !Ref Subnet1
+        RouteTableId: !Ref RouteTable
+    Subnet2RouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Condition: Prod
+      Properties:
+        SubnetId: !Ref Subnet2
         RouteTableId: !Ref RouteTable
     NetworkAcl:
       Type: AWS::EC2::NetworkAcl
@@ -97,7 +113,14 @@ Resources:
          NetworkAclId: !Ref NetworkAcl
     Subnet2NetworkAclAssociation:
        Type: AWS::EC2::SubnetNetworkAclAssociation
+       Condition: Prod
        Properties:
          SubnetId: !Ref Subnet2
          NetworkAclId: !Ref NetworkAcl
-                 
+
+Outputs:
+    Subnet1:
+        Value: !Ref Subnet1
+    Subnet2:
+        Condition: Prod
+        Value: !Ref Subnet2
